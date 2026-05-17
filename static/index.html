@@ -24,6 +24,35 @@
         <button id="recover-button" type="button" class="danger">Recover</button>
       </section>
 
+      <section class="camera-settings" aria-label="Camera settings">
+        <article>
+          <header class="panel-header">
+            <h2>Exposure</h2>
+            <button id="refresh-config-button" type="button" class="compact">Refresh</button>
+          </header>
+          <div id="exposure-controls" class="control-stack"></div>
+        </article>
+
+        <article>
+          <header class="panel-header">
+            <h2>Focus</h2>
+            <button id="autofocus-button" type="button" class="compact">Autofocus</button>
+          </header>
+          <div class="focus-steps" aria-label="Manual focus steps">
+            <button type="button" data-focus-step="-200">-200</button>
+            <button type="button" data-focus-step="-50">-50</button>
+            <button type="button" data-focus-step="50">+50</button>
+            <button type="button" data-focus-step="200">+200</button>
+          </div>
+          <div id="focus-controls" class="control-stack"></div>
+        </article>
+
+        <article>
+          <h2>Image</h2>
+          <div id="image-controls" class="control-stack"></div>
+        </article>
+      </section>
+
       <section class="preview-panel">
         <div class="preview-frame">
           <img id="preview-image" alt="Live preview" />

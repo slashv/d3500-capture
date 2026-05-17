@@ -54,6 +54,10 @@ Capture formats:
 - `GET /live.mjpg`
 - `POST /capture`
 - `POST /recover`
+- `GET /camera/config`
+- `PUT /camera/config/{key}`
+- `POST /focus/autofocus`
+- `POST /focus/manual-step`
 - `GET /captures/latest`
 - `GET /captures/{id}/file`
 
@@ -61,3 +65,9 @@ The controller kills macOS `PTPCamera` before camera operations and serializes a
 `gphoto2` access so live preview and still capture do not fight for the USB device.
 Still capture uses `--trigger-capture --wait-event-and-download=15s`; this proved
 more reliable with the D3500 than `--capture-image-and-download`.
+
+The settings API exposes mapped, tested camera controls for aperture, shutter
+speed, ISO, exposure compensation, metering, white balance, image size, image
+quality, capture mode, focus mode, and live-view autofocus mode. Settings and
+focus actions pause live preview, run one `gphoto2` command, and resume preview
+when it was previously running.

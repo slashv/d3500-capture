@@ -7,6 +7,7 @@ from typing import Any
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
 from .camera_controller import CameraBusyError, CameraController, CameraError, CameraNotFoundError
 from .capture_store import CaptureStore, media_type_for
@@ -16,6 +17,14 @@ from .settings import Settings
 settings = Settings.from_env()
 store = CaptureStore(settings.capture_dir)
 controller = CameraController(settings, store)
+
+
+class ConfigSetRequest(BaseModel):
+    value: str
+
+
+class ManualFocusRequest(BaseModel):
+    value: int = Field(ge=-2000, le=2000)
 
 
 @asynccontextmanager
@@ -85,6 +94,38 @@ def capture() -> dict[str, Any]:
 @app.post("/recover")
 def recover() -> dict[str, Any]:
     return controller.recover()
+
+
+@app.get("/camera/config")
+def camera_config() -> dict[str, Any]:
+    try:
+        return controller.get_camera_config()
+    except CameraError as exc:
+        raise _http_error(exc) from exc
+
+
+@app.put("/camera/config/{key}")
+def set_camera_config(key: str, request: ConfigSetRequest) -> dict[str, Any]:
+    try:
+        return controller.set_camera_config(key, request.value)
+    except CameraError as exc:
+        raise _http_error(exc) from exc
+
+
+@app.post("/focus/autofocus")
+def autofocus() -> dict[str, Any]:
+    try:
+        return controller.autofocus()
+    except CameraError as exc:
+        raise _http_error(exc) from exc
+
+
+@app.post("/focus/manual-step")
+def manual_focus_step(request: ManualFocusRequest) -> dict[str, Any]:
+    try:
+        return controller.manual_focus_step(request.value)
+    except CameraError as exc:
+        raise _http_error(exc) from exc
 
 
 @app.get("/captures/latest")

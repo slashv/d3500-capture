@@ -56,6 +56,29 @@ button.danger:hover:not(:disabled) {
   background: #ffe8e8;
 }
 
+button.compact {
+  min-height: 32px;
+  padding: 0 10px;
+  font-size: 13px;
+}
+
+input,
+select {
+  width: 100%;
+  min-height: 36px;
+  border: 1px solid #bdc7d1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #18212b;
+  font: inherit;
+  padding: 0 10px;
+}
+
+select:disabled,
+input:disabled {
+  opacity: 0.58;
+}
+
 .shell {
   width: min(1120px, calc(100vw - 32px));
   margin: 0 auto;
@@ -132,6 +155,53 @@ h2 {
 
 .preview-panel {
   margin-bottom: 18px;
+}
+
+.camera-settings {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.panel-header h2 {
+  margin-bottom: 0;
+}
+
+.control-stack {
+  display: grid;
+  gap: 10px;
+}
+
+.control-field {
+  display: grid;
+  gap: 5px;
+}
+
+.control-field span {
+  color: #657384;
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.focus-steps {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.focus-steps button {
+  min-height: 34px;
+  padding: 0 8px;
 }
 
 .preview-frame {
@@ -262,6 +332,7 @@ dd {
   }
 
   .topbar,
+  .camera-settings,
   .details-grid,
   .latest-capture {
     grid-template-columns: 1fr;

@@ -11,6 +11,58 @@ from .capture_store import CaptureStore
 from .settings import Settings
 
 
+CONFIG_CONTROLS = {
+    "aperture": {
+        "path": "/main/capturesettings/f-number",
+        "group": "exposure",
+    },
+    "shutter_speed": {
+        "path": "/main/capturesettings/shutterspeed2",
+        "group": "exposure",
+    },
+    "iso": {
+        "path": "/main/imgsettings/iso",
+        "group": "exposure",
+    },
+    "exposure_compensation": {
+        "path": "/main/capturesettings/exposurecompensation",
+        "group": "exposure",
+    },
+    "metering": {
+        "path": "/main/capturesettings/exposuremetermode",
+        "group": "exposure",
+    },
+    "white_balance": {
+        "path": "/main/imgsettings/whitebalance",
+        "group": "image",
+    },
+    "image_size": {
+        "path": "/main/imgsettings/imagesize",
+        "group": "image",
+    },
+    "image_quality": {
+        "path": "/main/capturesettings/imagequality",
+        "group": "image",
+    },
+    "capture_mode": {
+        "path": "/main/capturesettings/capturemode",
+        "group": "image",
+    },
+    "focus_mode": {
+        "path": "/main/capturesettings/focusmode2",
+        "group": "focus",
+    },
+    "live_view_af_mode": {
+        "path": "/main/capturesettings/liveviewafmode",
+        "group": "focus",
+    },
+    "live_view_af_focus": {
+        "path": "/main/capturesettings/liveviewaffocus",
+        "group": "focus",
+    },
+}
+
+
 class CameraError(RuntimeError):
     pass
 
@@ -199,6 +251,73 @@ class CameraController:
 
         return self.status()
 
+    def get_camera_config(self) -> dict[str, Any]:
+        if not self._operation_lock.acquire(blocking=False):
+            raise CameraBusyError("Camera operation already in progress.")
+        try:
+            controls = self._with_preview_pause(
+                "busy",
+                lambda: {
+                    key: self._get_config_control(key)
+                    for key in CONFIG_CONTROLS
+                },
+            )
+            return {
+                "controls": controls,
+                "status": self.status(),
+            }
+        finally:
+            self._operation_lock.release()
+
+    def set_camera_config(self, key: str, value: str) -> dict[str, Any]:
+        if key not in CONFIG_CONTROLS:
+            raise CameraError(f"Unsupported camera config key: {key}")
+        if not self._operation_lock.acquire(blocking=False):
+            raise CameraBusyError("Camera operation already in progress.")
+        try:
+            control = self._with_preview_pause(
+                "busy",
+                lambda: self._set_config_control(key, value),
+            )
+            return {
+                "control": control,
+                "status": self.status(),
+            }
+        finally:
+            self._operation_lock.release()
+
+    def autofocus(self) -> dict[str, Any]:
+        if not self._operation_lock.acquire(blocking=False):
+            raise CameraBusyError("Camera operation already in progress.")
+        try:
+            self._with_preview_pause(
+                "busy",
+                lambda: self._run_gphoto(
+                    ["--set-config", "/main/actions/autofocusdrive=1"],
+                    timeout=20,
+                ),
+            )
+            return self.status()
+        finally:
+            self._operation_lock.release()
+
+    def manual_focus_step(self, value: int) -> dict[str, Any]:
+        if value < -2000 or value > 2000 or value == 0:
+            raise CameraError("Manual focus step must be between -2000 and 2000, excluding 0.")
+        if not self._operation_lock.acquire(blocking=False):
+            raise CameraBusyError("Camera operation already in progress.")
+        try:
+            self._with_preview_pause(
+                "busy",
+                lambda: self._run_gphoto(
+                    ["--set-config", f"/main/actions/manualfocusdrive={value}"],
+                    timeout=20,
+                ),
+            )
+            return self.status()
+        finally:
+            self._operation_lock.release()
+
     def mjpeg_frames(self) -> Iterator[bytes]:
         last_seen = -1
         while True:
@@ -268,6 +387,41 @@ class CameraController:
         )
         self._preview_thread = thread
         thread.start()
+
+    def _with_preview_pause(self, state: str, operation):
+        with self._state_lock:
+            resume_preview = self._is_preview_running_locked()
+            self._state = state
+            self._last_error = None
+
+        if resume_preview:
+            self._stop_preview_locked(turn_off_viewfinder=True)
+            with self._state_lock:
+                self._state = state
+            time.sleep(0.5)
+
+        try:
+            self._kill_ptp_camera()
+            self._ensure_camera_detected()
+            result = operation()
+            with self._state_lock:
+                self._state = "idle"
+                self._last_error = None
+            if resume_preview:
+                self._start_preview_locked()
+            return result
+        except Exception as exc:
+            with self._state_lock:
+                self._state = "error"
+                self._last_error = str(exc)
+            if resume_preview:
+                try:
+                    self._start_preview_locked()
+                except Exception:
+                    pass
+            if isinstance(exc, CameraError):
+                raise
+            raise CameraError(str(exc)) from exc
 
     def _stop_preview_locked(self, turn_off_viewfinder: bool) -> None:
         with self._state_lock:
@@ -432,6 +586,43 @@ class CameraController:
             raise CameraError(message or f"gphoto2 failed with exit code {result.returncode}.")
         return result
 
+    def _get_config_control(self, key: str) -> dict[str, Any]:
+        definition = CONFIG_CONTROLS[key]
+        result = self._run_gphoto(
+            ["--get-config", definition["path"]],
+            timeout=20,
+        )
+        return _parse_config_output(key, definition, result.stdout)
+
+    def _set_config_control(self, key: str, value: str) -> dict[str, Any]:
+        current = self._get_config_control(key)
+        self._validate_config_value(current, value)
+        path = CONFIG_CONTROLS[key]["path"]
+        self._run_gphoto(["--set-config", f"{path}={value}"], timeout=20)
+        return self._get_config_control(key)
+
+    @staticmethod
+    def _validate_config_value(control: dict[str, Any], value: str) -> None:
+        control_type = control["type"]
+        if control_type == "RADIO":
+            allowed = {choice["value"] for choice in control["choices"]}
+            if value not in allowed:
+                raise CameraError(
+                    f"{control['key']} must be one of: {', '.join(sorted(allowed))}"
+                )
+        elif control_type == "TOGGLE" and value not in {"0", "1"}:
+            raise CameraError(f"{control['key']} must be 0 or 1.")
+        elif control_type == "RANGE":
+            range_info = control.get("range") or {}
+            try:
+                numeric_value = int(value)
+            except ValueError as exc:
+                raise CameraError(f"{control['key']} must be an integer.") from exc
+            bottom = int(range_info.get("bottom", numeric_value))
+            top = int(range_info.get("top", numeric_value))
+            if numeric_value < bottom or numeric_value > top:
+                raise CameraError(f"{control['key']} must be between {bottom} and {top}.")
+
     def _port_args(self) -> list[str]:
         with self._state_lock:
             return ["--port", self._camera_port] if self._camera_port else []
@@ -545,3 +736,50 @@ def _capture_id(path: Path) -> str:
     stem = path.stem
     prefix = "nikon-d3500-"
     return stem[len(prefix) :] if stem.startswith(prefix) else stem
+
+
+def _parse_config_output(
+    key: str,
+    definition: dict[str, str],
+    output: str,
+) -> dict[str, Any]:
+    control: dict[str, Any] = {
+        "key": key,
+        "path": definition["path"],
+        "group": definition["group"],
+        "label": key.replace("_", " ").title(),
+        "readonly": True,
+        "type": "UNKNOWN",
+        "current": None,
+        "choices": [],
+    }
+
+    range_info: dict[str, int] = {}
+    for line in output.splitlines():
+        if line.startswith("Label: "):
+            control["label"] = line.removeprefix("Label: ").strip()
+        elif line.startswith("Readonly: "):
+            control["readonly"] = line.removeprefix("Readonly: ").strip() == "1"
+        elif line.startswith("Type: "):
+            control["type"] = line.removeprefix("Type: ").strip()
+        elif line.startswith("Current: "):
+            control["current"] = line.removeprefix("Current: ").strip()
+        elif line.startswith("Choice: "):
+            choice = line.removeprefix("Choice: ").strip()
+            value, _, label = choice.partition(" ")
+            control["choices"].append(
+                {
+                    "value": value,
+                    "label": label.strip() or value,
+                }
+            )
+        elif line.startswith("Bottom: "):
+            range_info["bottom"] = int(line.removeprefix("Bottom: ").strip())
+        elif line.startswith("Top: "):
+            range_info["top"] = int(line.removeprefix("Top: ").strip())
+        elif line.startswith("Step: "):
+            range_info["step"] = int(line.removeprefix("Step: ").strip())
+
+    if range_info:
+        control["range"] = range_info
+    return control

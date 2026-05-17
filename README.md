@@ -38,6 +38,7 @@ Environment variables:
 - `D3500_HOST=127.0.0.1`
 - `D3500_PORT=8000`
 - `D3500_GPHOTO_TIMEOUT=60`
+- `D3500_CAPTURE_WAIT=5`
 
 Capture formats:
 
@@ -63,7 +64,7 @@ Capture formats:
 
 The controller kills macOS `PTPCamera` before camera operations and serializes all
 `gphoto2` access so live preview and still capture do not fight for the USB device.
-Still capture uses `--trigger-capture --wait-event-and-download=15s`; this proved
+Still capture uses `--trigger-capture --wait-event-and-download=5s`; this proved
 more reliable with the D3500 than `--capture-image-and-download`.
 
 The settings API exposes mapped, tested camera controls for aperture, shutter

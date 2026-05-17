@@ -19,6 +19,7 @@ class Settings:
     host: str
     port: int
     gphoto_timeout: int
+    capture_wait: int
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -43,6 +44,7 @@ class Settings:
             host=os.getenv("D3500_HOST", "127.0.0.1"),
             port=int(os.getenv("D3500_PORT", "8000")),
             gphoto_timeout=int(os.getenv("D3500_GPHOTO_TIMEOUT", "60")),
+            capture_wait=int(os.getenv("D3500_CAPTURE_WAIT", "5")),
         )
 
     def as_dict(self) -> dict[str, str | int]:
@@ -55,6 +57,7 @@ class Settings:
             "host": self.host,
             "port": self.port,
             "gphoto_timeout": self.gphoto_timeout,
+            "capture_wait": self.capture_wait,
         }
 
 

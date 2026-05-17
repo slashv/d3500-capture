@@ -180,7 +180,7 @@ class CameraController:
                     "--filename",
                     str(self.settings.capture_dir / "nikon-d3500-%Y%m%d-%H%M%S.%C"),
                     "--trigger-capture",
-                    "--wait-event-and-download=15s",
+                    f"--wait-event-and-download={self.settings.capture_wait}s",
                 ],
                 timeout=self.settings.gphoto_timeout,
             )

@@ -18,6 +18,7 @@ const els = {
   startButton: document.querySelector("#start-button"),
   stopButton: document.querySelector("#stop-button"),
   captureButton: document.querySelector("#capture-button"),
+  fastCaptureInput: document.querySelector("#fast-capture-input"),
   recoverButton: document.querySelector("#recover-button"),
   refreshConfigButton: document.querySelector("#refresh-config-button"),
   autofocusButton: document.querySelector("#autofocus-button"),
@@ -253,7 +254,9 @@ function escapeHtml(value) {
 els.detectButton.addEventListener("click", () => runAction(() => post("/detect")));
 els.startButton.addEventListener("click", () => runAction(() => post("/preview/start")));
 els.stopButton.addEventListener("click", () => runAction(() => post("/preview/stop")));
-els.captureButton.addEventListener("click", () => runAction(() => post("/capture")));
+els.captureButton.addEventListener("click", () =>
+  runAction(() => post("/capture", { fast: els.fastCaptureInput.checked })),
+);
 els.recoverButton.addEventListener("click", () => runAction(() => post("/recover")));
 els.refreshConfigButton.addEventListener("click", () => runAction(refreshCameraConfig));
 els.autofocusButton.addEventListener("click", () => runAction(() => post("/focus/autofocus")));

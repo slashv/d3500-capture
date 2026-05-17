@@ -4,7 +4,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Body, FastAPI, HTTPException
 from fastapi.responses import FileResponse, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
@@ -25,6 +25,10 @@ class ConfigSetRequest(BaseModel):
 
 class ManualFocusRequest(BaseModel):
     value: int = Field(ge=-2000, le=2000)
+
+
+class CaptureRequest(BaseModel):
+    fast: bool = False
 
 
 @asynccontextmanager
@@ -84,9 +88,9 @@ def live_mjpg() -> StreamingResponse:
 
 
 @app.post("/capture")
-def capture() -> dict[str, Any]:
+def capture(request: CaptureRequest = Body(default_factory=CaptureRequest)) -> dict[str, Any]:
     try:
-        return controller.capture()
+        return controller.capture(fast=request.fast)
     except CameraError as exc:
         raise _http_error(exc) from exc
 

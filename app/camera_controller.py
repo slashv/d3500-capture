@@ -153,7 +153,7 @@ class CameraController:
         finally:
             self._operation_lock.release()
 
-    def capture(self) -> dict[str, Any]:
+    def capture(self, *, fast: bool = False) -> dict[str, Any]:
         if not self._operation_lock.acquire(blocking=False):
             raise CameraBusyError("Camera operation already in progress.")
 
@@ -170,17 +170,25 @@ class CameraController:
                     self._state = "capturing"
                 time.sleep(0.75)
 
-            self._kill_ptp_camera()
-            self._ensure_camera_detected()
-            self._prepare_camera_for_capture()
+            if fast:
+                if not self._camera_port:
+                    self._kill_ptp_camera()
+                    self._ensure_camera_detected()
+            else:
+                self._kill_ptp_camera()
+                self._ensure_camera_detected()
+                self._prepare_camera_for_capture()
 
             before = self._capture_files()
+            capture_wait = (
+                self.settings.fast_capture_wait if fast else self.settings.capture_wait
+            )
             self._run_gphoto(
                 [
                     "--filename",
                     str(self.settings.capture_dir / "nikon-d3500-%Y%m%d-%H%M%S.%C"),
                     "--trigger-capture",
-                    f"--wait-event-and-download={self.settings.capture_wait}s",
+                    f"--wait-event-and-download={capture_wait}s",
                 ],
                 timeout=self.settings.gphoto_timeout,
             )
@@ -189,6 +197,7 @@ class CameraController:
                 raise CameraError("Capture completed but no downloaded file was found.")
 
             metadata = self._prepare_capture_metadata(downloaded)
+            metadata["fast"] = fast
             self.store.write_latest(metadata)
 
             with self._state_lock:

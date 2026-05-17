@@ -148,9 +148,29 @@ h2 {
 
 .toolbar {
   display: flex;
+  align-items: center;
   flex-wrap: wrap;
   gap: 10px;
   margin-bottom: 16px;
+}
+
+.toggle-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  border: 1px solid #bdc7d1;
+  border-radius: 6px;
+  background: #ffffff;
+  padding: 0 12px;
+  color: #3e4a57;
+  font-weight: 700;
+}
+
+.toggle-control input {
+  width: 16px;
+  min-height: 16px;
+  margin: 0;
 }
 
 .preview-panel {

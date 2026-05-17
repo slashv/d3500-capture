@@ -39,6 +39,7 @@ Environment variables:
 - `D3500_PORT=8000`
 - `D3500_GPHOTO_TIMEOUT=60`
 - `D3500_CAPTURE_WAIT=5`
+- `D3500_FAST_CAPTURE_WAIT=3`
 
 Capture formats:
 
@@ -72,3 +73,7 @@ speed, ISO, exposure compensation, metering, white balance, image size, image
 quality, capture mode, focus mode, and live-view autofocus mode. Settings and
 focus actions pause live preview, run one `gphoto2` command, and resume preview
 when it was previously running.
+
+`POST /capture` accepts an optional body like `{ "fast": true }`. Fast capture
+skips repeated camera preparation, assumes the selected camera and settings are
+already correct, and uses `D3500_FAST_CAPTURE_WAIT`.

@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from fastapi import Body, FastAPI, HTTPException
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
@@ -84,6 +84,22 @@ def live_mjpg() -> StreamingResponse:
     return StreamingResponse(
         controller.mjpeg_frames(),
         media_type="multipart/x-mixed-replace; boundary=frame",
+    )
+
+
+@app.get("/preview/frame.jpg")
+def preview_frame() -> Response:
+    frame = controller.latest_preview_frame()
+    if frame is None:
+        raise HTTPException(status_code=404, detail="No preview frame available")
+    data, frame_id = frame
+    return Response(
+        content=data,
+        media_type="image/jpeg",
+        headers={
+            "Cache-Control": "no-store",
+            "X-D3500-Frame-Id": str(frame_id),
+        },
     )
 
 

@@ -327,6 +327,12 @@ class CameraController:
         finally:
             self._operation_lock.release()
 
+    def latest_preview_frame(self) -> tuple[bytes, int] | None:
+        with self._frame_condition:
+            if not self._latest_frame:
+                return None
+            return self._latest_frame, self._frame_id
+
     def mjpeg_frames(self) -> Iterator[bytes]:
         last_seen = -1
         while True:

@@ -149,6 +149,12 @@ the same shape as `GET /status`.
 MJPEG preview stream for browsers or preview consumers. This is not the
 high-resolution still image path. Still capture is always through `POST /capture`.
 
+### `GET /preview/frame.jpg`
+
+Returns the latest live preview JPEG frame with `Cache-Control: no-store` and
+`X-D3500-Frame-Id`. This is intended for polling clients that should not keep a
+long-lived MJPEG connection open.
+
 ### `POST /capture`
 
 Triggers a still capture, downloads the file, writes `captures/latest.json`, and

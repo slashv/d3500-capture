@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Nikon D3500 Controller</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <h1>Nikon D3500 Controller</h1>
+          <p id="camera-line">Checking camera...</p>
+        </div>
+        <div id="state-pill" class="pill">unknown</div>
+      </header>
+
+      <section class="toolbar" aria-label="Camera controls">
+        <button id="detect-button" type="button">Detect</button>
+        <button id="start-button" type="button">Start Preview</button>
+        <button id="stop-button" type="button">Stop Preview</button>
+        <button id="capture-button" type="button" class="primary">Take Photo</button>
+        <button id="recover-button" type="button" class="danger">Recover</button>
+      </section>
+
+      <section class="preview-panel">
+        <div class="preview-frame">
+          <img id="preview-image" alt="Live preview" />
+          <div id="preview-placeholder">Preview stopped</div>
+        </div>
+      </section>
+
+      <section class="details-grid">
+        <article>
+          <h2>Status</h2>
+          <dl>
+            <div>
+              <dt>State</dt>
+              <dd id="state-value">unknown</dd>
+            </div>
+            <div>
+              <dt>Preview</dt>
+              <dd id="preview-value">unknown</dd>
+            </div>
+            <div>
+              <dt>Capture format</dt>
+              <dd id="format-value">unknown</dd>
+            </div>
+            <div>
+              <dt>Error</dt>
+              <dd id="error-value">none</dd>
+            </div>
+            <div>
+              <dt>Command</dt>
+              <dd id="command-value">none</dd>
+            </div>
+          </dl>
+        </article>
+
+        <article>
+          <h2>Latest Capture</h2>
+          <div id="latest-capture" class="latest-empty">No capture yet</div>
+        </article>
+      </section>
+    </main>
+
+    <script src="/static/app.js"></script>
+  </body>
+</html>
